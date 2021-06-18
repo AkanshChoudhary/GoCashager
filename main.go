@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/heroku/GoCashager/JsonHelper"
 	"github.com/heroku/GoCashager/utils"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,6 +36,7 @@ func main() {
 
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
+		var finalres string
 		go func() {
 			cursor, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
 			if err != nil {
@@ -47,6 +49,9 @@ func main() {
 
 				return
 			}
+			var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
+			var res = string(response)
+			finalres = res
 		}()
 
 		// var allItems []bson.M
@@ -59,7 +64,7 @@ func main() {
 		// var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
 		// var res = string(response)
 		// fmt.Print(res)
-		c.String(200, uid)
+		c.String(200, finalres)
 	})
 
 	router.Run(":" + port)
