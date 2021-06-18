@@ -18,7 +18,7 @@ func main() {
 	var client_mongo *mongo.Client
 	var ctx = context.TODO()
 	client_mongo, _ = mongo.NewClient(options.Client().ApplyURI(utils.MONGO_ACCESS_URL))
-	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, _ = context.WithTimeout(context.Background(), 1*time.Hour)
 	err := client_mongo.Connect(ctx)
 	if err != nil {
 		log.Fatal(err)
@@ -35,11 +35,14 @@ func main() {
 
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
-		_, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
-		if err != nil {
-			log.Fatalln(err)
-			return
-		}
+		go func() {
+			_, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
+			if err != nil {
+				log.Fatalln(err)
+				return
+			}
+		}()
+
 		// var allItems []bson.M
 		// if err = cursor.All(ctx, &allItems); err != nil {
 		// 	log.Fatalln(err)
