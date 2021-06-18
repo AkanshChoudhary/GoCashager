@@ -36,6 +36,7 @@ func main() {
 
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
+		ccpy := c.Copy()
 		go func() {
 			cursor, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
 			if err != nil {
@@ -50,7 +51,7 @@ func main() {
 			}
 			var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
 			var res = string(response)
-			c.String(200, res)
+			ccpy.String(200, res)
 		}()
 
 		// var allItems []bson.M
