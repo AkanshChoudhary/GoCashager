@@ -36,9 +36,15 @@ func main() {
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
 		go func() {
-			_, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
+			cursor, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
 			if err != nil {
 				log.Fatalln(err)
+				return
+			}
+			var allItems []bson.M
+			if err = cursor.All(ctx, &allItems); err != nil {
+				log.Fatalln(err)
+
 				return
 			}
 		}()
