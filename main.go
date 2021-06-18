@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/heroku/GoCashager/utils"
 	_ "github.com/heroku/x/hmetrics/onload"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -34,12 +35,11 @@ func main() {
 
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
-		// cursor, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
-		// if err != nil {
-		// 	log.Fatalln(err)
-
-		// 	return
-		// }
+		_, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
 		// var allItems []bson.M
 		// if err = cursor.All(ctx, &allItems); err != nil {
 		// 	log.Fatalln(err)
