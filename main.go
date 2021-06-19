@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"os"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -49,10 +49,9 @@ func getActivities(client_mongo *mongo.Client, ctx context.Context, uid string) 
 	return finalres
 }
 
-func addActivity(client_mongo *mongo.Client, ctx context.Context, uid string, name string, desc string, amount string, id string) <-chan int {
+func addActivity(client_mongo *mongo.Client, ctx context.Context, uid string, singleActivity utils.Activity) <-chan int {
 	finalres := make(chan int)
 	go func() {
-		var singleActivity = utils.Activity{}
 		var activityMap = map[string]map[string]string{"activities": {"name": singleActivity.Name, "desc": singleActivity.Desc, "amount": singleActivity.Amount, "id": singleActivity.Id}}
 		_, err := client_mongo.Database("Cashager").Collection("user+"+uid).UpdateOne(ctx, bson.M{"type": "activities"}, bson.M{"$push": activityMap})
 		if err != nil {
@@ -62,7 +61,19 @@ func addActivity(client_mongo *mongo.Client, ctx context.Context, uid string, na
 	}()
 	return finalres
 }
+func deleteActivity(client_mongo *mongo.Client, ctx context.Context, uid string, actId string) <-chan int {
+	finalres := make(chan int)
+	go func() {
+		var t = map[string]map[string]string{"activities": {"id": actId}}
 
+		_, err := client_mongo.Database("Cashager").Collection("user+"+uid).UpdateMany(ctx, bson.M{"type": "activities"}, bson.M{"$pull": t})
+		if err != nil {
+			log.Fatalln(err)
+		}
+		finalres <- 200
+	}()
+	return finalres
+}
 func main() {
 	var client_mongo *mongo.Client
 	var ctx = context.TODO()
@@ -72,11 +83,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	port := os.Getenv("PORT")
+	// port := os.Getenv("PORT")
 
-	if port == "" {
-		log.Fatal("$PORT must be set")
-	}
+	// if port == "" {
+	// 	log.Fatal("$PORT must be set")
+	// }
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -92,12 +103,22 @@ func main() {
 		res := <-getActivities(client_mongo, ctx, uid)
 		c.String(200, res)
 	})
-
 	router.POST(utils.ADD_ACTIVITY_ROUTE+"/:uid", func(c *gin.Context) {
+		var activity = utils.Activity{}
+		if err := c.ShouldBindJSON(&activity); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		var uid = c.Param("uid")
-		resCode := <-addActivity(client_mongo, ctx, uid, c.PostForm("name"), c.PostForm("desc"), c.PostForm("amount"), c.PostForm("id"))
+		resCode := <-addActivity(client_mongo, ctx, uid, activity)
 		c.String(resCode, "Success")
 	})
-
-	router.Run(":" + port)
+	router.DELETE(utils.DELETE_ACTIVITY+"/:uid/:actId", func(c *gin.Context) {
+		var uid = c.Param("uid")
+		var actId = c.Param("actId")
+		resCode := <-deleteActivity(client_mongo, ctx, uid, actId)
+		c.String(resCode, "Deleted")
+	})
+	//router.Run(":" + port)
+	router.Run(":8080")
 }
