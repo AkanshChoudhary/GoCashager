@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -83,11 +84,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// port := os.Getenv("PORT")
+	port := os.Getenv("PORT")
 
-	// if port == "" {
-	// 	log.Fatal("$PORT must be set")
-	// }
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -119,6 +120,5 @@ func main() {
 		resCode := <-deleteActivity(client_mongo, ctx, uid, actId)
 		c.String(resCode, "Deleted")
 	})
-	//router.Run(":" + port)
-	router.Run(":8080")
+	router.Run(":" + port)
 }
