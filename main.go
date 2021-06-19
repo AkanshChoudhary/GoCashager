@@ -49,8 +49,18 @@ func getActivities(client_mongo *mongo.Client, ctx context.Context, uid string) 
 	return finalres
 }
 
-func addActivity(client_mongo *mongo.Client, ctx context.Context, uid string, name string, desc string, amount string, id string) <-chan string {
-
+func addActivity(client_mongo *mongo.Client, ctx context.Context, uid string, name string, desc string, amount string, id string) <-chan int {
+	finalres := make(chan int)
+	go func() {
+		var singleActivity = utils.Activity{}
+		var activityMap = map[string]map[string]string{"activities": {"name": singleActivity.Name, "desc": singleActivity.Desc, "amount": singleActivity.Amount, "id": singleActivity.Id}}
+		_, err := client_mongo.Database("Cashager").Collection("user+"+uid).UpdateOne(ctx, bson.M{"type": "activities"}, bson.M{"$push": activityMap})
+		if err != nil {
+			log.Fatalln(err)
+		}
+		finalres <- 200
+	}()
+	return finalres
 }
 
 func main() {
@@ -85,8 +95,8 @@ func main() {
 
 	router.POST(utils.ADD_ACTIVITY_ROUTE+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
-		res := <-addActivity(client_mongo, ctx, uid, c.PostForm("name"), c.PostForm("desc"), c.PostForm("amount"), c.PostForm("id"))
-		c.String(200, res)
+		resCode := <-addActivity(client_mongo, ctx, uid, c.PostForm("name"), c.PostForm("desc"), c.PostForm("amount"), c.PostForm("id"))
+		c.String(resCode, "Success")
 	})
 
 	router.Run(":" + port)
