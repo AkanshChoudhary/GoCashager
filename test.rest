@@ -1,0 +1,22 @@
+
+GET http://localhost:8080/user-info/ancdefg
+
+###
+
+GET http://localhost:8080/get-activities/ancdefg
+
+
+###
+
+POST http://localhost:8080/add-activity/ancdefg
+Content-Type: application/json
+
+{
+    "name":"some cheese",
+    "desc":"amul cheese",
+    "amount":"200",
+    "id":"aaawww"
+}
+###
+
+DELETE http://localhost:8080/delete-activity/ancdefg/aaawww

@@ -32,6 +32,27 @@ func getUserInfo(client_mongo *mongo.Client, ctx context.Context, uid string) <-
 	}()
 	return finalres
 }
+func getActivities(client_mongo *mongo.Client, ctx context.Context, uid string) <-chan string {
+	finalres := make(chan string)
+	go func() {
+		var activities = utils.Activities{}
+		err := client_mongo.Database("Cashager").Collection("user+"+uid).FindOne(ctx, bson.M{"type": "activities"}).Decode(&activities)
+		if err != nil {
+			log.Fatalln(err)
+
+			return
+		}
+		var response string = string(JsonHelper.ProvideAllActivities(activities.Activities))
+		var res = string(response)
+		finalres <- res
+	}()
+	return finalres
+}
+
+func addActivity(client_mongo *mongo.Client, ctx context.Context, uid string, name string, desc string, amount string, id string) <-chan string {
+
+}
+
 func main() {
 	var client_mongo *mongo.Client
 	var ctx = context.TODO()
@@ -54,16 +75,17 @@ func main() {
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
 		res := <-getUserInfo(client_mongo, ctx, uid)
-		// var allItems []bson.M
-		// if err = cursor.All(ctx, &allItems); err != nil {
-		// 	log.Fatalln(err)
+		c.String(200, res)
+	})
+	router.GET(utils.GET_USER_ACTIVITIES+"/:uid", func(c *gin.Context) {
+		var uid = c.Param("uid")
+		res := <-getActivities(client_mongo, ctx, uid)
+		c.String(200, res)
+	})
 
-		// 	return
-		// }
-		// //fmt.Print(allItems[0])
-		// var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
-		// var res = string(response)
-		// fmt.Print(res)
+	router.POST(utils.ADD_ACTIVITY_ROUTE+"/:uid", func(c *gin.Context) {
+		var uid = c.Param("uid")
+		res := <-addActivity(client_mongo, ctx, uid, c.PostForm("name"), c.PostForm("desc"), c.PostForm("amount"), c.PostForm("id"))
 		c.String(200, res)
 	})
 
