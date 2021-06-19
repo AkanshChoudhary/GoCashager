@@ -15,6 +15,23 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+func getUserInfo(client_mongo *mongo.Client, ctx context.Context, uid string) <-chan string {
+	finalres := make(chan string)
+	go func() {
+		cursor, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
+		if err != nil {
+			log.Fatalln(err)
+		}
+		var allItems []bson.M
+		if err = cursor.All(ctx, &allItems); err != nil {
+			log.Fatalln(err)
+		}
+		var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
+		var res = string(response)
+		finalres <- res
+	}()
+	return finalres
+}
 func main() {
 	var client_mongo *mongo.Client
 	var ctx = context.TODO()
@@ -36,21 +53,7 @@ func main() {
 
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
-		var s string
-		go func() {
-			cursor, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
-			if err != nil {
-				log.Fatalln(err)
-			}
-			var allItems []bson.M
-			if err = cursor.All(ctx, &allItems); err != nil {
-				log.Fatalln(err)
-			}
-			var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
-			var res = string(response)
-			s = res
-		}()
-
+		res := <-getUserInfo(client_mongo, ctx, uid)
 		// var allItems []bson.M
 		// if err = cursor.All(ctx, &allItems); err != nil {
 		// 	log.Fatalln(err)
@@ -61,7 +64,7 @@ func main() {
 		// var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
 		// var res = string(response)
 		// fmt.Print(res)
-		c.String(200, s)
+		c.String(200, res)
 	})
 
 	router.Run(":" + port)
