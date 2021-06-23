@@ -1,7 +1,6 @@
 package JsonHelper
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -9,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func ProvideUserInfo(mongoUser bson.M) []byte {
+func ProvideUserInfo(mongoUser bson.M) interface{} {
 	var x string = fmt.Sprintf("%v", mongoUser["totalBalance"])
 	totbal, _ := strconv.ParseInt(x, 10, 64)
 	user := &utils.UserInfo{
@@ -18,17 +17,12 @@ func ProvideUserInfo(mongoUser bson.M) []byte {
 		LastName:     fmt.Sprintf("%v", mongoUser["lastName"]),
 		Totalbalance: totbal,
 	}
-	e, err := json.Marshal(user)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return e
+	return user
 }
 
-func ProvideAllActivities(mongoUserActivities []map[string]string) []byte {
+func ProvideAllActivities(mongoUserActivities []map[string]string) interface{} {
 	var acts = utils.Activities{
 		Activities: mongoUserActivities,
 	}
-	e, _ := json.Marshal(&acts)
-	return e
+	return acts
 }

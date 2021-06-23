@@ -16,8 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func getUserInfo(client_mongo *mongo.Client, ctx context.Context, uid string) <-chan string {
-	finalres := make(chan string)
+func getUserInfo(client_mongo *mongo.Client, ctx context.Context, uid string) <-chan interface{} {
+	finalres := make(chan interface{})
 	go func() {
 		cursor, err := client_mongo.Database("Cashager").Collection("user+"+uid).Find(ctx, bson.M{"type": "baseInfo"})
 		if err != nil {
@@ -27,14 +27,14 @@ func getUserInfo(client_mongo *mongo.Client, ctx context.Context, uid string) <-
 		if err = cursor.All(ctx, &allItems); err != nil {
 			log.Fatalln(err)
 		}
-		var response []byte = JsonHelper.ProvideUserInfo(allItems[0])
-		var res = string(response)
-		finalres <- res
+		var response = JsonHelper.ProvideUserInfo(allItems[0])
+		// var res = string(response)
+		finalres <- response
 	}()
 	return finalres
 }
-func getActivities(client_mongo *mongo.Client, ctx context.Context, uid string) <-chan string {
-	finalres := make(chan string)
+func getActivities(client_mongo *mongo.Client, ctx context.Context, uid string) <-chan interface{} {
+	finalres := make(chan interface{})
 	go func() {
 		var activities = utils.Activities{}
 		err := client_mongo.Database("Cashager").Collection("user+"+uid).FindOne(ctx, bson.M{"type": "activities"}).Decode(&activities)
@@ -43,9 +43,8 @@ func getActivities(client_mongo *mongo.Client, ctx context.Context, uid string) 
 
 			return
 		}
-		var response string = string(JsonHelper.ProvideAllActivities(activities.Activities))
-		var res = string(response)
-		finalres <- res
+		var response = JsonHelper.ProvideAllActivities(activities.Activities)
+		finalres <- response
 	}()
 	return finalres
 }
@@ -97,12 +96,13 @@ func main() {
 	router.GET(utils.GET_USER_INFO+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
 		res := <-getUserInfo(client_mongo, ctx, uid)
-		c.String(200, res)
+		c.JSON(200, res)
+
 	})
 	router.GET(utils.GET_USER_ACTIVITIES+"/:uid", func(c *gin.Context) {
 		var uid = c.Param("uid")
 		res := <-getActivities(client_mongo, ctx, uid)
-		c.String(200, res)
+		c.JSON(200, res)
 	})
 	router.POST(utils.ADD_ACTIVITY_ROUTE+"/:uid", func(c *gin.Context) {
 		var activity = utils.Activity{}
@@ -112,13 +112,15 @@ func main() {
 		}
 		var uid = c.Param("uid")
 		resCode := <-addActivity(client_mongo, ctx, uid, activity)
-		c.String(resCode, "Success")
+		res := map[string]string{"Status": "Success"}
+		c.JSON(resCode, res)
 	})
 	router.DELETE(utils.DELETE_ACTIVITY+"/:uid/:actId", func(c *gin.Context) {
 		var uid = c.Param("uid")
 		var actId = c.Param("actId")
 		resCode := <-deleteActivity(client_mongo, ctx, uid, actId)
-		c.String(resCode, "Deleted")
+		res := map[string]string{"Status": "DELETED"}
+		c.JSON(resCode, res)
 	})
 	router.Run(":" + port)
 }
