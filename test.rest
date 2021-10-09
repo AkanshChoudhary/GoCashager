@@ -20,3 +20,8 @@ Content-Type: application/json
 ###
 
 DELETE http://localhost:8080/delete-activity/ancdefg/aaawww
+
+
+###
+GET https://go-cashager.herokuapp.com/user-info/ancdefg
+
